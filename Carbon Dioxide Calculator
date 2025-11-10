@@ -1,0 +1,314 @@
+import os
+import re
+import difflib
+import pandas as pd
+
+def carbon_footprint():
+    """Asks 8 questions to calculate a carbon footprint score."""
+    print("\nWelcome to the Carbon Footprint Calculator")
+    print("Answer the following questions to estimate your household's carbon footprint.")
+    
+    def ask(prompt, valid):
+        """Helper function to validate user input."""
+        while True:
+            ans = input(prompt).strip().lower()
+            if ans in valid:
+                return ans
+            print(f" Invalid choice. Please enter one of: {', '.join(valid)}")
+
+    # Question 1
+    print("\n1. How would you describe your household's overall energy consumption?")
+    print(" a) Low (I'm very careful)")
+    print(" b) Average")
+    print(" c) High (I leave things on)")
+    question1 = ask("Choose (a/b/c): ", {'a', 'b', 'c'})
+
+    # Question 2
+    print("\n2. What type of building do you live in?")
+    print(" a) Apartment complex")
+    print(" b) House in an urban area")
+    print(" c) House in a rural place")
+    question2 = ask("Choose (a/b/c): ", {'a', 'b', 'c'})
+
+    # Question 3
+    print("\n3. What is your primary source of heating?")
+    print(" a) No central heat")
+    print(" b) Natural Gas")
+    print(" c) Heating Oil/Propane")
+    print(" d) Electricity")
+    question3 = ask("Choose (a/b/c/d): ", {'a', 'b', 'c', 'd'})
+
+    # Question 4
+    print("\n4. Do you actively buy green energy or use solar power?")
+    print(" a) Yes, fully")
+    print(" b) Partially")
+    print(" c) No")
+    question4 = ask("Choose (a/b/c): ", {'a', 'b', 'c'})
+
+    # Question 5
+    print("\n5. What is your primary mode of transportation?")
+    print(" a) Walk/Bike/Work from home")
+    print(" b) Public transportation (bus/train)")
+    print(" c) Personal car (gasoline)")
+    question5 = ask("Choose (a/b/c): ", {'a', 'b', 'c'})
+
+    # Question 6
+    print("\n6. How would you describe your diet?")
+    print(" a) Vegan or Vegetarian")
+    print(" b) Average (eat meat a few times a week)")
+    print(" c) High-meat (eat meat most days)")
+    question6 = ask("Choose (a/b/c): ", {'a', 'b', 'c'})
+
+    # Question 7
+    print("\n7. How much of your household waste do you recycle?")
+    print(" a) All or most (glass, paper, plastic, compost)")
+    print(" b) Some (e.g., just paper and cans)")
+    print(" c) Very little or none")
+    question7 = ask("Choose (a/b/c): ", {'a', 'b', 'c'})
+
+    # Question 8
+    print("\n8. How often do you fly per year?")
+    print(" a) Rarely or never")
+    print(" b) 1-2 short-haul flights")
+    print(" c) Several flights, including long-haul")
+    question8 = ask("Choose (a/b/c): ", {'a', 'b', 'c'})
+
+    # Scoring system
+    score = 0
+    # Question1 scoring
+    if question1 == 'a': 
+        score += 1
+    elif question1 == 'b': 
+        score += 3
+    else: # question 1 == 'c'
+        score += 5
+
+    # Question2 scoring
+    if question2 == 'a': 
+        score += 2
+    elif question2 == 'b': 
+        score += 3
+    else: # question 2 == 'c'
+        score += 4
+
+    # Question3 scoring
+    if question3 == 'a': 
+        score += 1
+    elif question3 == 'b': 
+        score += 3
+    elif question3 == 'c': 
+        score += 4
+    else: # question 3 == 'd': 
+        score += 5
+
+    # Question4 scoring
+    if question4 == 'a': 
+        score += 1
+    elif question4 == 'b': 
+        score += 3
+    else: # question 4 == 'c': 
+        score += 5
+        
+    # Question 5 scoring
+    if question5 == 'a': 
+        score += 1
+    elif question5 == 'b': 
+        score += 3
+    else: # question 5 == 'c'
+        score += 5
+
+    # Question 6 scoring
+    if question6 == 'a': 
+        score += 1
+    elif question6 == 'b': 
+        score += 3
+    else: # question 6 == 'c'
+        score += 5
+
+    # Question 7 scoring
+    if question7 == 'a': 
+        score += 1
+    elif question7 == 'b': 
+        score += 3
+    else: # question 7 == 'c'
+        score += 5
+
+    # Question 8 scoring
+    if question8 == 'a': 
+        score += 1
+    elif question8 == 'b': 
+        score += 3
+    else: # question 8 == 'c'
+        score += 5
+        
+    return score
+
+# --- NEW FUNCTION to save data ---
+def save_data(name, age, country, score, filename="user_scores.csv"):
+    """Saves the user's data and score to a CSV file."""
+    # Check if file exists to determine if we need to write headers
+    file_exists = os.path.exists(filename)
+    
+    # Create a new DataFrame for the current user's data
+    data_to_save = {
+        'name': [name],
+        'age': [age],
+        'country': [country],
+        'score': [score]
+    }
+    df = pd.DataFrame(data_to_save)
+    
+    try:
+        # Append to the CSV file.
+        # mode='a' means append.
+        # header=not file_exists writes headers only if the file is new.
+        # index=False prevents pandas from writing the DataFrame index.
+        df.to_csv(filename, mode='a', header=not file_exists, index=False)
+        print("\nYour score has been saved.")
+    except Exception as e:
+        print(f"Error: Could not save your score. {e}")
+
+# --- NEW FUNCTION to display comparison ---
+def display_comparison(current_user_score, filename="user_scores.csv"):
+    """Reads all scores from the CSV and displays a comparison."""
+    print("\n--- Comparison with Other Users ---")
+    try:
+        df = pd.read_csv(filename)
+        
+        # Check if the file is empty (other than the new user)
+        if df.empty or len(df) == 0:
+            print("You are the first user! No comparison data available yet.")
+            return
+
+        # Calculate stats
+        average_score = df['score'].mean()
+        total_entries = len(df)
+        min_score = df['score'].min()
+        max_score = df['score'].max()
+        
+        # Count how many users scored lower (better)
+        better_than_count = (df['score'] > current_user_score).sum()
+
+        print(f"Your Score: {current_user_score}")
+        print(f"Average Score (all users): {average_score:.2f}")
+        print(f"Lowest Score on record (Best): {min_score}")
+        print(f"Highest Score on record (Worst): {max_score}")
+        print(f"Total entries: {total_entries}")
+        print(f"You scored lower (better) than {better_than_count} other entries.")
+
+    except FileNotFoundError:
+        print("You are the first user! No comparison data available yet.")
+    except pd.errors.EmptyDataError:
+         print("You are the first user! No comparison data available yet.")
+    except Exception as e:
+        print(f"Error: Could not load comparison data. {e}")
+
+
+# --- All executable code is now inside this 'if __name__ == "__main__":' block ---
+if __name__ == "__main__":
+
+    # The name of the user.
+    while True:
+        name = input("What is your name? ")
+        if name.isalpha():
+            break
+        else:
+            print("Use letters only, no numbers.")
+
+    # Age of user between 17 and 99.
+    while True:
+        try:
+            age = int(input("How old are you? "))
+            if 17 <= age <= 99:
+                break
+            else:
+                print("Please enter an age between 17 and 99.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+    # Additional comment.
+    print("Now let's see where you're from.")
+
+    file_path = "country.csv"
+    df = None
+    user_country = "" # --- Variable to store the user's country ---
+
+    # Read the CSV file into a DataFrame
+    try:
+        df = pd.read_csv(file_path)
+    except FileNotFoundError:
+        print(f"CSV file not found at: {file_path}. Proceeding without country validation.")
+    except Exception as e:
+        print("Error reading CSV:", e)
+
+    # Extract the first column as a list.
+    if df is not None:
+        preferred = ["country", "Country"]
+        chosen_col = None
+        for col in preferred:
+            if col in df.columns:
+                chosen_col = col
+                break
+        if chosen_col is None:
+            chosen_col = df.columns[0]
+
+        my_list = df[chosen_col].astype(str).tolist()
+        available = {item.strip().lower() for item in my_list}
+
+        # Ask for country and validate against CSV list
+        while True:
+            country = input("What country are you from? ").strip()
+            if not re.match(r'^[A-Za-z\s\-]+$', country):
+                print("Use letters, spaces and hyphens only; no numbers or symbols.")
+                continue
+
+            if country.lower() in available:
+                print(f"'{country}' is available.")
+                user_country = country # --- Save the valid country ---
+                break 
+            else:
+                print(f"'{country}' is not available.")
+                suggestions = difflib.get_close_matches(country, my_list, n=3, cutoff=0.6)
+                if suggestions:
+                    print("Did you mean:", ", ".join(suggestions))
+                else:
+                    sample = ", ".join(my_list[:10])
+                    print("Available examples:", sample + (", ..." if len(my_list) > 10 else ""))
+    else:
+        # Fallback logic
+        print("Please enter your country. Basic validation will be applied.")
+        while True:
+            country = input("What country are you from? ").strip()
+            if not re.match(r'^[A-Za-z\s\-]+$', country):
+                print("Use letters, spaces and hyphens only; no numbers or symbols.")
+            elif country == "":
+                 print("Please enter a country name.")
+            else:
+                print(f"'{country}' recorded (validation skipped).")
+                user_country = country # --- Save the valid country ---
+                break 
+
+    # --- Call the function (now with 8 questions) ---
+    score2 = carbon_footprint()
+    print("\nCalculating your carbon footprint...")
+
+    # --- Result brackets adjusted for the new score range (Min: 9, Max: 39) ---
+    if score2 <= 19:
+        result = "Low footprint, Great job! You're very eco friendly."
+    elif 20 <= score2 <= 29:
+        result = "Moderate footprint, You are doing okay, but there is room to improve."
+    else: # score2 >= 30
+        result = "High footprint, Try adopting more energy saving habits."
+
+    print(f"\nYour total score: {score2}")
+    print(result)
+    
+    # --- NEW: Save and display comparison ---
+    # Define the file to store scores
+    SCORE_FILE = "user_scores.csv" 
+    
+    # Save the current user's data
+    save_data(name, age, user_country, score2, SCORE_FILE)
+    
+    # Display the comparison
+    display_comparison(score2, SCORE_FILE)
